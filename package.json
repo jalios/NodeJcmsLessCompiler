@@ -4,10 +4,7 @@
   "description": "Plugin that retrieves all plugins installed on a jcms instance.",
   "main": "getpropfiles.js",
   "dependencies": {
-    "less": "^2.7.1",
-    "line-by-line": "^0.1.5",
-    "node-dir": "^0.1.16",
-    "readdirp": "^2.1.0"
+    "less": "^2.7.1"
   },
   "devDependencies": {},
   "scripts": {
