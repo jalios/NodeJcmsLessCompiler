@@ -3,7 +3,9 @@ less = require('less'),
 path = require('path'),
 lessPropDeclarationRegex = new RegExp(/^channel\.less\.([^:]*):\s*(.*)$/, "gm"),
 mainPluginPropDeclaration = new RegExp(/^channel\.main-plugin:\s*([\w]*)$/, "gm")
-pluginXmlOrderRegex = new RegExp(/order="(\d+)"/, "g");
+pluginXmlOrderRegex = new RegExp(/order="(\d+)"/, "g")
+rootPath = process.argv[2];
+
 
 const WebInfPathSuffix = "/WEB-INF";
 const pluginWebInfPathSuffix = "/plugins";
@@ -239,9 +241,29 @@ function getAllJcmsPropLessFiles() {
   //   console.log("The file was saved!");
   // });
 
+  // for (var lessItem in lessFiles) {
+  //   if (lessFiles.hasOwnProperty(lessItem)) {
+  //     compileLESS(rootPath + "/" + lessItem, rootPath + "/" + lessFiles[lessItem]);
+  //   }
+  // }
+
+  return lessFiles;
+}
+
+function watchFolder() {
+  console.log("Starting to watch folder '" + rootPath +"' for updates.");
+  var lessFiles = getAllJcmsPropLessFiles();
+
   for (var lessItem in lessFiles) {
     if (lessFiles.hasOwnProperty(lessItem)) {
-      compileLESS(rootPath + "/" + lessItem, rootPath + "/" + lessFiles[lessItem]);
+      console.log("YOYO " + path.join(rootPath, lessItem));
+      fs.watch(path.join(rootPath, lessItem), function (evt, file) {
+        console.log(evt, file);
+        if (!file || !lessFiles[file]) return;
+        if (files[file]) compileLESS(file, lessFiles[file]);
+      });
+
+      // compileLESS(rootPath + "/" + lessItem, rootPath + "/" + lessFiles[lessItem]);
     }
   }
 
@@ -252,7 +274,16 @@ function getAllJcmsPropLessFiles() {
   });
 
   // return lessFiles;
+  // Watch current folder & compile if file from files{} has changed
+  // fs.watch(rootPath, function (evt, file) {
+  //   file = path.join(rootPath, file);
+  //   console.log(evt, file);
+  //   if (!file || !lessFiles[file]) return;
+  //   if (files[file]) compileLESS(file, lessFiles[file]);
+  // });
 }
+
+watchFolder();
 
 function compileLESS(from, to) {
   if (!from) {
@@ -275,12 +306,13 @@ function compileLESS(from, to) {
       compress: false,
       filename: from
     }, function (e, output) {
-      if (!e) fs.writeFile(to.trim(), output.css);
+      if (!e) fs.writeFile(to.trim(), output.css, function(){
+        console.log("Converted Less: '" + to);
+      });
       // console.log(to);
       //console.log(util.inspect(output, {showHidden: false, depth: null}))
-      console.log("Converted Less: '" + to);
     });
   });
 }
 
-getAllJcmsPropLessFiles();
+//getAllJcmsPropLessFiles();
