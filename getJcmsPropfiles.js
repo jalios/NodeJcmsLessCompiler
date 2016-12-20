@@ -8,6 +8,7 @@ pluginXmlOrderRegex = new RegExp(/order="(\d+)"/, "g");
 const WebInfPathSuffix = "/WEB-INF";
 const pluginWebInfPathSuffix = "/plugins";
 const pluginPropPathSuffix = "/properties";
+const notifier = require('node-notifier');
 
 //C:\_DEV\_workspaces\JCMS10.x_ws\JCMS\webapps\en\plugins
 const util = require('util');
@@ -226,6 +227,7 @@ function getAllJcmsPropLessFiles() {
   console.log(Object.keys(lessFiles).length + " less files have been found for all Jcms properties");
 
 
+
   // SAVE TO FILE
   // var json = JSON.stringify(lessFiles);
   //
@@ -242,6 +244,12 @@ function getAllJcmsPropLessFiles() {
       compileLESS(rootPath + "/" + lessItem, rootPath + "/" + lessFiles[lessItem]);
     }
   }
+
+  // Object
+  notifier.notify({
+    'title': 'Less has been compiled',
+    'message': 'Hello, there!'
+  });
 
   // return lessFiles;
 }
