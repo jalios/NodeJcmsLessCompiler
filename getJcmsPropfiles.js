@@ -1,7 +1,7 @@
 var fs = require('fs'),
 less = require('less'),
 path = require('path'),
-lessPropDeclarationRegex = new RegExp(/^channel\.less\.([^:]*):\s*(.*)$/, "gm"),
+lessPropDeclarationRegex = new RegExp(/^channel\.less\.(.*)[:|=](.*)$/, "gm"),
 mainPluginPropDeclaration = new RegExp(/^channel\.main-plugin:\s*([\w]*)$/, "gm")
 pluginXmlOrderRegex = new RegExp(/order="(\d+)"/, "g")
 rootPath = process.argv[2];
@@ -60,7 +60,7 @@ function getJcmsPropLessFiles(rootPath) {
     var contents = fs.readFileSync(rootPath + "/jalios/jcms.prop", 'utf8').toString();
     var match;
     while ((match = lessPropDeclarationRegex.exec(contents)) != null) {
-      var lessFile = match[2];
+      var lessFile = match[2].trim();
       var cssTo = match[1];
       var lessFileArray = { lessFile : cssTo};
       jsonObj[lessFile] = cssTo;
@@ -86,7 +86,7 @@ function getCustomPropLessFiles(rootPath) {
     var contents = fs.readFileSync(rootPath + "/data/custom.prop", 'utf8').toString();
     var match;
     while ((match = lessPropDeclarationRegex.exec(contents)) != null) {
-      var lessFile = match[2];
+      var lessFile = match[2].trim();
       var cssTo = match[1];
       var lessFileArray = { lessFile : cssTo};
       jsonObj[lessFile] = cssTo;
@@ -130,7 +130,7 @@ function getJcmsPlugins(rootPath) {
       var contents = fs.readFileSync(pluginPath + pluginPropPathSuffix + "/plugin.prop", 'utf8').toString();
       var match;
       while ((match = lessPropDeclarationRegex.exec(contents)) != null) {
-        var lessFile = match[2];
+        var lessFile = match[2].trim();
         var cssTo = match[1];
         var lessFileArray = { lessFile : cssTo};
         jsonObj[lessFile] = cssTo;
@@ -250,28 +250,59 @@ function getAllJcmsPropLessFiles() {
   return lessFiles;
 }
 
+
+
 function watchFolder() {
   console.log("Starting to watch folder '" + rootPath +"' for updates.");
   var lessFiles = getAllJcmsPropLessFiles();
+  var compileLessResult = {};
 
+  var finalStatus = {};
+  var okFileCount = 0;
+  var failedFileCount = 0;
+  var failedFileList = [];
   for (var lessItem in lessFiles) {
     if (lessFiles.hasOwnProperty(lessItem)) {
-      console.log("YOYO " + path.join(rootPath, lessItem));
-      fs.watch(path.join(rootPath, lessItem), function (evt, file) {
-        console.log(evt, file);
-        if (!file || !lessFiles[file]) return;
-        if (files[file]) compileLESS(file, lessFiles[file]);
-      });
+      // console.log("YOYO " + path.join(rootPath, lessItem));
 
-      // compileLESS(rootPath + "/" + lessItem, rootPath + "/" + lessFiles[lessItem]);
+      // var filePath = path.join(rootPath, lessItem);
+      // if (fs.existsSync(filePath)) {
+      //   fs.watch(filePath, function (evt, file) {
+      //     console.log(evt, file);
+      //     if (!file || !lessFiles[file]) return;
+      //     if (files[file]) compileLESS(file, lessFiles[file]);
+      //   });
+      // }
+      var result = compileLESS(rootPath + "/" + lessItem.trim(), rootPath + "/" + lessFiles[lessItem]);
+      // console.log(JSON.stringify(result, null, 2));
+      if (result && result.status === "OK") {
+        okFileCount++;
+      } else {
+        failedFileList.push(result.from);
+        failedFileCount++;
+      }
+
+      compileLessResult[lessItem.trim()] = result;
     }
   }
 
   // Object
-  notifier.notify({
-    'title': 'Less has been compiled',
-    'message': 'Hello, there!'
+  // notifier.notify({
+  //   'title': 'Less has been compiled',
+  //   'message': 'Hello, there!'
+  // });
+
+  compileLessResult['finalStatus'] = {'okCount':okFileCount,'failedFileCount':failedFileCount, 'failedFileList': failedFileList};
+
+  fs.writeFile("result.log", JSON.stringify(compileLessResult, null, 2), function(err) {
+      if(err) {
+          return console.log(err);
+      }
+
+      console.log("The file was saved!");
   });
+
+  return failedFileCount > 0 ? 1 : 0;
 
   // return lessFiles;
   // Watch current folder & compile if file from files{} has changed
@@ -286,33 +317,89 @@ function watchFolder() {
 watchFolder();
 
 function compileLESS(from, to) {
+  var result = {};
+
   if (!from) {
     console.log("Wrong from" + from);
+    result = {'from':from, 'to':to,'status':"FROM MISSING"};
     return;
   }
 
   if (!to) {
     console.log("Wrong to" + to);
+    result = {'from':from, 'to':to,'status':"TO MISSING"};
     return;
   }
+
+  // if (!fs.existsSync(to)) {
+  //   console.log("To file doesn't exists : " + to);
+  //   result = {'from':from, 'to':to,'status':"TO MISSING"};
+  //   return result;
+  // }
+
+  if (!fs.existsSync(from)) {
+    console.log("From file doesn't exists : " + from);
+    result = {'from':from, 'to':to,'status':"FROM MISSING"};
+    return result;
+    return;
+  }
+
   // less.writeError( "TODO");
-  fs.readFile(from.trim(), function (err, data) {
-    console.log("Compiling file : '" + from.split('\\').pop().split('/').pop() + "' to '" + to.split('\\').pop().split('/').pop() + "'");
-    if (err){
-      console.log("Compile failed" + err);
-      return;
+
+  var contents = fs.readFileSync(from.trim());
+  // console.log("Compiling file : '" + from.split('\\').pop().split('/').pop() + "' to '" + to.split('\\').pop().split('/').pop() + "'");
+
+  less.render(contents.toString(), {
+    compress: false,
+    filename: from,
+    syncImport: true
+  }, function (e, output) {
+    if (!e){
+      fs.writeFileSync(to.trim(), output.css);
+      // console.log("Converted Less: '" + to);
+      result = {'from':from,'to':to,'status':"OK"};
+    } else{
+      // console.log(e);
+      // result += e;
+      result = {'from':from,'to':to,'status':"FAILED", 'errorLog' : e};
     }
-    less.render(data.toString(), {
-      compress: false,
-      filename: from
-    }, function (e, output) {
-      if (!e) fs.writeFile(to.trim(), output.css, function(){
-        console.log("Converted Less: '" + to);
-      });
-      // console.log(to);
-      //console.log(util.inspect(output, {showHidden: false, depth: null}))
-    });
+    // console.log(to);
+    //console.log(util.inspect(output, {showHidden: false, depth: null}))
   });
+
+  return result;
+  // fs.readFile(from.trim(), function (err, data) {
+  //   console.log("Compiling file : '" + from.split('\\').pop().split('/').pop() + "' to '" + to.split('\\').pop().split('/').pop() + "'");
+  //   if (err){
+  //     console.log("Compile failed" + err);
+  //     return;
+  //   }
+  //   less.render(data.toString(), {
+  //     compress: false,
+  //     filename: from
+  //   }, function (e, output) {
+  //     fs.writeFile("/result.log", "Hey there!", function(err) {
+  //         if(err) {
+  //             return console.log(err);
+  //         }
+  //
+  //         console.log("The file was saved!");
+  //     });
+  //
+  //     if (!e){
+  //       fs.writeFile(to.trim(), output.css, function(){
+  //         console.log("Converted Less: '" + to);
+  //       });
+  //       return result;
+  //     } else{
+  //       console.log(e);
+  //       result += e;
+  //       return result;
+  //     }
+  //     // console.log(to);
+  //     //console.log(util.inspect(output, {showHidden: false, depth: null}))
+  //   });
+  // });
 }
 
 //getAllJcmsPropLessFiles();
