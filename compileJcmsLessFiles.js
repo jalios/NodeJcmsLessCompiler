@@ -169,20 +169,8 @@ function getJcmsPlugins(rootPath) {
  * @return json array of less files
  */
 function getAllJcmsPropLessFiles() {
-  var rootPath = process.argv[2];
   var webInfPath = rootPath + WebInfPathSuffix;
-  if (!rootPath) {
-    console.warn("Missing root path. Add path as argument")
-    return;
-  } else {
-    console.log("Scanning folder : " + rootPath + "\n");
-  }
-
-  if (!fs.existsSync(rootPath)) {
-    console.log("Folder does not exists : " + rootPath);
-    return;
-  }
-
+  
   var jcmsPropLessFiles = getJcmsPropLessFiles(webInfPath);
   var customPropLessFiles = getCustomPropLessFiles(webInfPath);
   var jcmsPluginList = getJcmsPlugins(webInfPath);
@@ -235,6 +223,16 @@ function getAllJcmsPropLessFiles() {
  * @return status 0 if OK or 1 if failed
  */
 function compileJCMSLess() {
+  if (!rootPath) {
+    console.log("Root path is missing.");
+    return 1;
+  }
+
+  if (!fs.existsSync(rootPath)) {
+    console.log("Folder does not exists : " + rootPath);
+    return 1;
+  }
+
   var lessFiles = getAllJcmsPropLessFiles();
   var compileLessResult = {};
 
