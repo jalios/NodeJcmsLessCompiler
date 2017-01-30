@@ -4,8 +4,7 @@
   "description": "Retrieves all less files declaration of a JCMS webapp and compiles it.",
   "main": "compileJCMSLessFiles.js",
   "dependencies": {
-    "less": "^2.7.1",
-    "node-notifier": "^4.6.1"
+    "less": "^2.7.1"
   },
   "devDependencies": {},
   "scripts": {
