@@ -1,8 +1,8 @@
 {
-  "name": "getprofiles",
+  "name": "compileJCMSLess",
   "version": "1.0.0",
-  "description": "Plugin that retrieves all plugins installed on a jcms instance.",
-  "main": "getpropfiles.js",
+  "description": "Retrieves all less files declaration of a JCMS webapp and compiles it.",
+  "main": "compileJCMSLessFiles.js",
   "dependencies": {
     "less": "^2.7.1",
     "node-notifier": "^4.6.1"
