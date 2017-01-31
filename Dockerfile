@@ -7,4 +7,4 @@ ADD *.js* README* /app/
 RUN cd app/ && npm install 
 
 
-ENTRYPOINT ["node","/app/getJcmsPropfiles.js", "/war"]
+ENTRYPOINT ["node","/app/compileJcmsLessFiles.js", "/war"]
