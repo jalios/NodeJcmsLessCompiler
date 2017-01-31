@@ -263,11 +263,16 @@ function compileJCMSLess() {
   console.log(failedFileList);
   console.log("\n");
 
-  fs.writeFile("result.log", JSON.stringify(compileLessResult, null, 2), function(err) {
+  var resultLogFile = "result.log";
+  if(process.env.RESULT_LOG){
+    resultLogFile = process.env.RESULT_LOG;
+  }
+
+  fs.writeFile(resultLogFile, JSON.stringify(compileLessResult, null, 2), function(err) {
       if(err) {
         return console.log(err);
       }
-      console.log("Result has been saved in result.log file.");
+      console.log("Result has been saved in "+resultLogFile+" file.");
   });
 
   return failedFileCount > 0 ? 1 : 0;
